@@ -1,0 +1,80 @@
+body {
+  font-family: Arial, sans-serif;
+  background: #f4f4f4;
+  margin: 0;
+  padding: 20px;
+}
+
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+h1 {
+  text-align: center;
+  color: #333;
+}
+
+input, button {
+  padding: 10px;
+  margin: 5px 0;
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 16px;
+}
+
+button {
+  background: #007bff;
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+button:hover {
+  background: #0056b3;
+}
+
+button.danger {
+  background: #dc3545;
+}
+
+button.danger:hover {
+  background: #c82333;
+}
+
+button.success {
+  background: #28a745;
+}
+
+.task {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+  gap: 10px;
+}
+
+.task input[type="text"] {
+  flex: 1;
+  margin: 0;
+}
+
+.task.completed span {
+  text-decoration: line-through;
+  color: #888;
+}
+
+.error {
+  color: red;
+  text-align: center;
+}
+
+.auth-form {
+  max-width: 400px;
+  margin: 0 auto;
+}
