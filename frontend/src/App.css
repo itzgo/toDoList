@@ -1,80 +1,173 @@
+/* Importando uma fonte mais leve e amigável + uma de bloco de notas opcional */
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Nunito:wght@400;600&display=swap');
+
 body {
-  font-family: Arial, sans-serif;
-  background: #f4f4f4;
+  font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+  /* Fundo que lembra uma cozinha iluminada ou parede em tom areia/aveia suave */
+  background-color: #ebe6dd;
+  background-image: radial-gradient(#dcd5c9 1px, transparent 1px);
+  background-size: 20px 20px;
+  color: #4a443f;
   margin: 0;
-  padding: 20px;
+  padding: 40px 20px;
+  min-height: 100vh;
 }
 
 .container {
-  max-width: 600px;
+  max-width: 540px;
   margin: 0 auto;
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  /* Tom de papel manteiga / bloco de notas */
+  background: #fdfbf7;
+  padding: 35px 30px;
+  border-radius: 4px 16px 6px 12px; /* Bordas levemente assimétricas como papel */
+  border: 1px solid #e6dfd3;
+  box-shadow: 0 10px 25px rgba(74, 68, 63, 0.08);
+  position: relative;
+}
+
+/* Detalhe sutil no topo simulando um imã de geladeira ou fita crepe (washi tape) */
+.container::before {
+  content: "";
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-1.5deg);
+  width: 110px;
+  height: 24px;
+  background: rgba(214, 196, 168, 0.55);
+  border-left: 1px dashed rgba(160, 140, 110, 0.4);
+  border-right: 1px dashed rgba(160, 140, 110, 0.4);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 h1 {
+  font-family: 'Caveat', cursive; /* Estilo escrita à mão no topo do bloco */
+  font-size: 2.6rem;
   text-align: center;
-  color: #333;
+  color: #3d3732;
+  margin-top: 5px;
+  margin-bottom: 24px;
+  letter-spacing: 0.5px;
 }
 
 input, button {
-  padding: 10px;
-  margin: 5px 0;
+  font-family: 'Nunito', sans-serif;
+  padding: 12px 14px;
+  margin: 6px 0;
   width: 100%;
   box-sizing: border-box;
-  font-size: 16px;
+  font-size: 15px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
 }
 
+input {
+  background: #f7f3eb;
+  border: 1px solid #dfd7c8;
+  color: #4a443f;
+}
+
+input::placeholder {
+  color: #9c9286;
+}
+
+input:focus {
+  outline: none;
+  background: #ffffff;
+  border-color: #8da38e;
+  box-shadow: 0 0 0 3px rgba(141, 163, 142, 0.2);
+}
+
+/* Botão principal: Verde-sálvia calmante */
 button {
-  background: #007bff;
-  color: white;
+  background: #7c947e;
+  color: #fdfbf7;
+  font-weight: 600;
   border: none;
   cursor: pointer;
-  border-radius: 4px;
 }
 
 button:hover {
-  background: #0056b3;
+  background: #69806b;
+  transform: translateY(-1px);
 }
 
+/* Botão de remover: Terracota suave (menos agressivo que vermelho vivo) */
 button.danger {
-  background: #dc3545;
+  background: #d17a6f;
 }
 
 button.danger:hover {
-  background: #c82333;
+  background: #bc665b;
 }
 
+/* Botão de concluir/salvar: Verde musgo acolhedor */
 button.success {
-  background: #28a745;
+  background: #6a8d73;
 }
 
+button.success:hover {
+  background: #57765f;
+}
+
+/* Lista com linhas pautadas de caderno */
 .task {
   display: flex;
   align-items: center;
-  padding: 10px;
-  border-bottom: 1px solid #eee;
-  gap: 10px;
+  padding: 12px 8px;
+  border-bottom: 1px dashed #e2d9c8;
+  gap: 12px;
+  transition: background 0.2s ease;
+}
+
+.task:hover {
+  background: rgba(244, 238, 227, 0.5);
+  border-radius: 6px;
+}
+
+.task:last-child {
+  border-bottom: none;
 }
 
 .task input[type="text"] {
   flex: 1;
   margin: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 6px 8px;
+}
+
+.task input[type="text"]:focus {
+  background: #ffffff;
+  border-color: #dfd7c8;
+}
+
+/* Estilo para checkbox mais suave */
+.task input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: #7c947e;
+  cursor: pointer;
+  margin: 0;
 }
 
 .task.completed span {
   text-decoration: line-through;
-  color: #888;
+  text-decoration-color: #a89f93;
+  color: #a39a8e;
 }
 
 .error {
-  color: red;
+  color: #b85c50;
+  background: #faedeb;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 14px;
   text-align: center;
+  margin: 10px 0;
 }
 
 .auth-form {
-  max-width: 400px;
+  max-width: 380px;
   margin: 0 auto;
 }
