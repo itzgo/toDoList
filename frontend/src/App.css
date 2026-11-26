@@ -1,116 +1,242 @@
-/* Importando uma fonte mais leve e amigável + uma de bloco de notas opcional */
-@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Nunito:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Nunito:wght@400;600;700&display=swap');
+
+* {
+  box-sizing: border-box;
+}
 
 body {
-  font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
-  /* Fundo que lembra uma cozinha iluminada ou parede em tom areia/aveia suave */
-  background-color: #ebe6dd;
-  background-image: radial-gradient(#dcd5c9 1px, transparent 1px);
-  background-size: 20px 20px;
+  font-family: 'Nunito', sans-serif;
+  background-color: #e9e3d8;
+  background-image: radial-gradient(#d5cdc0 1px, transparent 1px);
+  background-size: 22px 22px;
   color: #4a443f;
   margin: 0;
-  padding: 40px 20px;
+  padding: 45px 16px;
   min-height: 100vh;
 }
 
+/* Animação do papel colando suavemente na tela */
+@keyframes paperDrop {
+  0% {
+    opacity: 0;
+    transform: translateY(-16px) rotate(-0.8deg) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) rotate(0deg) scale(1);
+  }
+}
+
+/* Animação de cada tarefa deslizando para entrar */
+@keyframes slideInTask {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Animação das janelinhas (Modais) */
+@keyframes popWindow {
+  0% {
+    opacity: 0;
+    transform: scale(0.92) translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes slideDownToast {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.animate-paper {
+  animation: paperDrop 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.animate-item {
+  animation: slideInTask 0.3s ease forwards;
+}
+
+/* Folha principal */
 .container {
   max-width: 540px;
   margin: 0 auto;
-  /* Tom de papel manteiga / bloco de notas */
   background: #fdfbf7;
-  padding: 35px 30px;
-  border-radius: 4px 16px 6px 12px; /* Bordas levemente assimétricas como papel */
-  border: 1px solid #e6dfd3;
-  box-shadow: 0 10px 25px rgba(74, 68, 63, 0.08);
+  padding: 36px 32px;
+  border-radius: 6px 18px 8px 14px;
+  border: 1px solid #e4ddd0;
+  box-shadow: 0 12px 30px rgba(74, 68, 63, 0.09);
   position: relative;
 }
 
-/* Detalhe sutil no topo simulando um imã de geladeira ou fita crepe (washi tape) */
-.container::before {
-  content: "";
+/* Imãs redondos nos cantos superiores */
+.magnet {
   position: absolute;
-  top: -12px;
-  left: 50%;
-  transform: translateX(-50%) rotate(-1.5deg);
-  width: 110px;
-  height: 24px;
-  background: rgba(214, 196, 168, 0.55);
-  border-left: 1px dashed rgba(160, 140, 110, 0.4);
-  border-right: 1px dashed rgba(160, 140, 110, 0.4);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  top: 14px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.18), inset 0 2px 3px rgba(255, 255, 255, 0.5);
+}
+
+.magnet-left {
+  left: 18px;
+  background: #7c947e; /* Verde sálvia */
+}
+
+.magnet-right {
+  right: 18px;
+  background: #d48c70; /* Terracota */
+}
+
+/* Cabeçalho */
+.note-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 22px;
+  padding-top: 6px;
 }
 
 h1 {
-  font-family: 'Caveat', cursive; /* Estilo escrita à mão no topo do bloco */
-  font-size: 2.6rem;
-  text-align: center;
-  color: #3d3732;
-  margin-top: 5px;
-  margin-bottom: 24px;
-  letter-spacing: 0.5px;
+  font-family: 'Caveat', cursive;
+  font-size: 2.5rem;
+  color: #3a342f;
+  margin: 0;
+  line-height: 1.1;
 }
 
-input, button {
+.subtitle {
+  text-align: center;
+  color: #8c8276;
+  margin-top: 4px;
+  margin-bottom: 24px;
+  font-size: 0.95rem;
+}
+
+.progress-badge {
+  display: inline-block;
+  margin-top: 4px;
+  font-size: 0.82rem;
+  color: #7d7469;
+  background: #f2ece1;
+  padding: 3px 10px;
+  border-radius: 12px;
+}
+
+/* Inputs e Formulários */
+input {
   font-family: 'Nunito', sans-serif;
+  width: 100%;
   padding: 12px 14px;
   margin: 6px 0;
-  width: 100%;
-  box-sizing: border-box;
   font-size: 15px;
-  border-radius: 8px;
-  transition: all 0.2s ease;
-}
-
-input {
   background: #f7f3eb;
   border: 1px solid #dfd7c8;
+  border-radius: 10px;
   color: #4a443f;
-}
-
-input::placeholder {
-  color: #9c9286;
+  transition: all 0.2s ease;
 }
 
 input:focus {
   outline: none;
   background: #ffffff;
-  border-color: #8da38e;
-  box-shadow: 0 0 0 3px rgba(141, 163, 142, 0.2);
+  border-color: #7c947e;
+  box-shadow: 0 0 0 3px rgba(124, 148, 126, 0.18);
 }
 
-/* Botão principal: Verde-sálvia calmante */
+.add-task-form {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.add-task-form input {
+  margin: 0;
+}
+
+/* Botões */
 button {
+  font-family: 'Nunito', sans-serif;
+  font-weight: 600;
+  font-size: 15px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 12px;
+  margin-top: 8px;
   background: #7c947e;
   color: #fdfbf7;
-  font-weight: 600;
-  border: none;
-  cursor: pointer;
 }
 
-button:hover {
-  background: #69806b;
+.btn-primary:hover {
+  background: #68806a;
   transform: translateY(-1px);
 }
 
-/* Botão de remover: Terracota suave (menos agressivo que vermelho vivo) */
-button.danger {
-  background: #d17a6f;
+.btn-add {
+  padding: 0 18px;
+  font-size: 22px;
+  background: #7c947e;
+  color: #fdfbf7;
+  flex-shrink: 0;
 }
 
-button.danger:hover {
+.btn-add:hover {
+  background: #68806a;
+  transform: scale(1.04);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: #7d7469;
+  padding: 6px 12px;
+  font-size: 14px;
+}
+
+.btn-ghost:hover {
+  background: #f0e9dd;
+  color: #4a443f;
+}
+
+.btn-danger {
+  background: #d17a6f;
+  color: #fff;
+  padding: 10px 16px;
+}
+
+.btn-danger:hover {
   background: #bc665b;
 }
 
-/* Botão de concluir/salvar: Verde musgo acolhedor */
-button.success {
-  background: #6a8d73;
+.btn-link {
+  width: 100%;
+  background: transparent;
+  color: #7c947e;
+  margin-top: 12px;
+  font-size: 14px;
+  text-decoration: underline;
 }
 
-button.success:hover {
-  background: #57765f;
-}
-
-/* Lista com linhas pautadas de caderno */
+/* Lista de Tarefas */
 .task {
   display: flex;
   align-items: center;
@@ -121,40 +247,164 @@ button.success:hover {
 }
 
 .task:hover {
-  background: rgba(244, 238, 227, 0.5);
-  border-radius: 6px;
+  background: rgba(244, 238, 227, 0.55);
+  border-radius: 8px;
 }
 
 .task:last-child {
   border-bottom: none;
 }
 
-.task input[type="text"] {
+.task-text {
   flex: 1;
-  margin: 0;
-  background: transparent;
-  border: 1px solid transparent;
-  padding: 6px 8px;
-}
-
-.task input[type="text"]:focus {
-  background: #ffffff;
-  border-color: #dfd7c8;
-}
-
-/* Estilo para checkbox mais suave */
-.task input[type="checkbox"] {
-  width: 18px;
-  height: 18px;
-  accent-color: #7c947e;
   cursor: pointer;
-  margin: 0;
+  line-height: 1.4;
+  transition: color 0.25s ease;
+  word-break: break-word;
 }
 
-.task.completed span {
+.task.completed .task-text {
   text-decoration: line-through;
   text-decoration-color: #a89f93;
-  color: #a39a8e;
+  color: #a69d91;
+}
+
+/* Checkbox personalizado suave */
+.custom-checkbox {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.custom-checkbox input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.checkmark {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #b5ab9c;
+  border-radius: 6px;
+  background: #fff;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.custom-checkbox input:checked ~ .checkmark {
+  background: #7c947e;
+  border-color: #7c947e;
+  transform: scale(1.08);
+}
+
+.custom-checkbox input:checked ~ .checkmark::after {
+  content: "✓";
+  color: white;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+/* Ações discretas ao passar o mouse na tarefa */
+.task-actions {
+  display: flex;
+  gap: 4px;
+  opacity: 0.45;
+  transition: opacity 0.2s ease;
+}
+
+.task:hover .task-actions {
+  opacity: 1;
+}
+
+.btn-icon {
+  background: transparent;
+  padding: 6px;
+  font-size: 14px;
+  border-radius: 6px;
+}
+
+.btn-icon:hover {
+  background: #ebe3d5;
+  transform: scale(1.1);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 28px 10px;
+  color: #968c7f;
+  font-style: italic;
+}
+
+/* JANELINHAS (MODAIS) */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(58, 52, 47, 0.35);
+  backdrop-filter: blur(3px); /* Efeito vidro fosco no fundo */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 100;
+}
+
+.modal-window {
+  background: #fdfbf7;
+  border: 1px solid #e4ddd0;
+  border-radius: 16px;
+  padding: 24px;
+  width: 100%;
+  max-width: 380px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  animation: popWindow 0.25s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.modal-window h3 {
+  margin-top: 0;
+  margin-bottom: 12px;
+  color: #3a342f;
+  font-size: 1.2rem;
+}
+
+.modal-desc {
+  color: #6e655c;
+  font-size: 0.95rem;
+  margin-bottom: 20px;
+  line-height: 1.4;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.modal-actions .btn-primary {
+  width: auto;
+  margin-top: 0;
+  padding: 10px 18px;
+}
+
+/* NOTIFICAÇÃO FLUTUANTE (TOAST) */
+.toast-notification {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #4a443f;
+  color: #fdfbf7;
+  padding: 10px 18px;
+  border-radius: 20px;
+  font-size: 14px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+  z-index: 200;
+  animation: slideDownToast 0.3s ease forwards;
 }
 
 .error {
@@ -164,10 +414,10 @@ button.success:hover {
   border-radius: 8px;
   font-size: 14px;
   text-align: center;
-  margin: 10px 0;
+  margin-top: 12px;
 }
 
 .auth-form {
-  max-width: 380px;
+  max-width: 360px;
   margin: 0 auto;
 }

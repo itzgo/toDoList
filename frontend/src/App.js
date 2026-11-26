@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import './App.css';
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem('token') || '');
@@ -6,10 +7,19 @@ function App() {
   const [isLogin, setIsLogin] = useState(true);
   const [authForm, setAuthForm] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
+  
   const [tasks, setTasks] = useState([]);
   const [newTask, setNewTask] = useState('');
-  const [editingId, setEditingId] = useState(null);
-  const [editingTitle, setEditingTitle] = useState('');
+
+  // Estados para as "janelinhas" (Modais) e notificações (Toast)
+  const [editingTask, setEditingTask] = useState(null); // Abre modal de edição
+  const [deletingTask, setDeletingTask] = useState(null); // Abre modal de confirmação
+  const [toast, setToast] = useState(null);
+
+  const showToast = (message, type = 'info') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   useEffect(() => {
     if (token) fetchTasks();
@@ -54,13 +64,14 @@ function App() {
         localStorage.setItem('username', data.username);
         setToken(data.token);
         setUsername(data.username);
+        showToast(`Bem-vindo de volta, ${data.username}!`);
       } else {
         setError('');
         setIsLogin(true);
-        alert('Conta criada! Faça login.');
+        showToast('Conta criada! Agora é só entrar.');
       }
     } catch {
-      setError('Erro de conexão');
+      setError('Erro de conexão com o servidor');
     }
   };
 
@@ -89,38 +100,41 @@ function App() {
       const task = await res.json();
       setTasks([...tasks, task]);
       setNewTask('');
+      showToast('Anotado no bloco!');
     }
   };
 
-  const deleteTask = async (id) => {
-    const res = await fetch(`/tasks/${id}`, {
+  const confirmDelete = async () => {
+    if (!deletingTask) return;
+    const res = await fetch(`/tasks/${deletingTask.id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` }
     });
     if (res.ok) {
-      setTasks(tasks.filter(t => t.id !== id));
+      setTasks(tasks.filter(t => t.id !== deletingTask.id));
+      setDeletingTask(null);
+      showToast('Item removido.');
     }
   };
 
-  const startEdit = (task) => {
-    setEditingId(task.id);
-    setEditingTitle(task.title);
-  };
+  const saveEdit = async (e) => {
+    e.preventDefault();
+    if (!editingTask || !editingTask.title.trim()) return;
 
-  const saveEdit = async (id) => {
-    const res = await fetch(`/tasks/${id}`, {
+    const res = await fetch(`/tasks/${editingTask.id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`
       },
-      body: JSON.stringify({ title: editingTitle })
+      body: JSON.stringify({ title: editingTask.title })
     });
 
     if (res.ok) {
       const updated = await res.json();
-      setTasks(tasks.map(t => t.id === id ? updated : t));
-      setEditingId(null);
+      setTasks(tasks.map(t => t.id === editingTask.id ? updated : t));
+      setEditingTask(null);
+      showToast('Anotação atualizada.');
     }
   };
 
@@ -140,80 +154,183 @@ function App() {
     }
   };
 
-  if (!token) {
-    return (
-      <div className="container">
-        <h1>To-Do List</h1>
-        <div className="auth-form">
-          <h2>{isLogin ? 'Login' : 'Criar Conta'}</h2>
-          <form onSubmit={handleAuth}>
-            <input
-              placeholder="Usuário"
-              value={authForm.username}
-              onChange={e => setAuthForm({ ...authForm, username: e.target.value })}
-              required
-            />
-            <input
-              type="password"
-              placeholder="Senha"
-              value={authForm.password}
-              onChange={e => setAuthForm({ ...authForm, password: e.target.value })}
-              required
-            />
-            <button type="submit">{isLogin ? 'Entrar' : 'Criar Conta'}</button>
-          </form>
-          <button onClick={() => { setIsLogin(!isLogin); setError(''); }}>
-            {isLogin ? 'Não tem conta? Criar' : 'Já tem conta? Login'}
-          </button>
-          {error && <p className="error">{error}</p>}
-        </div>
-      </div>
-    );
-  }
+  const completedCount = tasks.filter(t => t.completed).length;
 
   return (
-    <div className="container">
-      <h1>Olá, {username}!</h1>
-      <button onClick={logout} className="danger">Sair</button>
+    <>
+      {/* Notificação Flutuante (Toast) */}
+      {toast && (
+        <div className="toast-notification">
+          <span>📌</span> {toast.message}
+        </div>
+      )}
 
-      <form onSubmit={createTask}>
-        <input
-          placeholder="Nova tarefa..."
-          value={newTask}
-          onChange={e => setNewTask(e.target.value)}
-        />
-        <button type="submit" className="success">Adicionar</button>
-      </form>
+      {!token ? (
+        <div className="container animate-paper">
+          <div className="magnet magnet-left"></div>
+          <div className="magnet magnet-right"></div>
+          
+          <h1>Meu bloquinho</h1>
+          <p className="subtitle">
+            {isLogin ? 'Entre para ver seus tarefas' : 'Crie seu bloquinho pessoal'}
+          </p>
 
-      <div>
-        {tasks.map(task => (
-          <div key={task.id} className={`task ${task.completed ? 'completed' : ''}`}>
+          <div className="auth-form">
+            <form onSubmit={handleAuth}>
+              <input
+                placeholder="Seu nome de usuário"
+                value={authForm.username}
+                onChange={e => setAuthForm({ ...authForm, username: e.target.value })}
+                required
+              />
+              <input
+                type="password"
+                placeholder="Sua senha"
+                value={authForm.password}
+                onChange={e => setAuthForm({ ...authForm, password: e.target.value })}
+                required
+              />
+              <button type="submit" className="btn-primary">
+                {isLogin ? 'Abrir bloquinho' : 'Criar conta'}
+              </button>
+            </form>
+
+            <button
+              type="button"
+              className="btn-link"
+              onClick={() => { setIsLogin(!isLogin); setError(''); }}
+            >
+              {isLogin ? 'Ainda não tem um bloco? Criar conta' : 'Já tem conta? Fazer login'}
+            </button>
+
+            {error && <p className="error">{error}</p>}
+          </div>
+        </div>
+      ) : (
+        <div className="container animate-paper">
+          <div className="magnet magnet-left"></div>
+          <div className="magnet magnet-right"></div>
+
+          <header className="note-header">
+            <div>
+              <h1>Recados de {username}</h1>
+              <span className="progress-badge">
+                {tasks.length === 0
+                  ? 'Tudo limpo por aqui'
+                  : `${completedCount} de ${tasks.length} concluídas`}
+              </span>
+            </div>
+            <button onClick={logout} className="btn-ghost" title="Sair da conta">
+              Sair
+            </button>
+          </header>
+
+          <form onSubmit={createTask} className="add-task-form">
             <input
-              type="checkbox"
-              checked={task.completed}
-              onChange={() => toggleCompleted(task)}
+              placeholder="Escrever novo lembrete..."
+              value={newTask}
+              onChange={e => setNewTask(e.target.value)}
             />
-            {editingId === task.id ? (
-              <>
-                <input
-                  value={editingTitle}
-                  onChange={e => setEditingTitle(e.target.value)}
-                />
-                <button onClick={() => saveEdit(task.id)}>Salvar</button>
-                <button onClick={() => setEditingId(null)}>Cancelar</button>
-              </>
-            ) : (
-              <>
-                <span style={{ flex: 1 }}>{task.title}</span>
-                <button onClick={() => startEdit(task)}>Editar</button>
-                <button className="danger" onClick={() => deleteTask(task.id)}>Excluir</button>
-              </>
+            <button type="submit" className="btn-add" title="Adicionar">
+              +
+            </button>
+          </form>
+
+          <div className="task-list">
+            {tasks.map((task, index) => (
+              <div
+                key={task.id}
+                style={{ animationDelay: `${index * 0.04}s` }}
+                className={`task animate-item ${task.completed ? 'completed' : ''}`}
+              >
+                <label className="custom-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={task.completed}
+                    onChange={() => toggleCompleted(task)}
+                  />
+                  <span className="checkmark"></span>
+                </label>
+
+                <span
+                  className="task-text"
+                  onClick={() => toggleCompleted(task)}
+                >
+                  {task.title}
+                </span>
+
+                <div className="task-actions">
+                  <button
+                    className="btn-icon"
+                    onClick={() => setEditingTask(task)}
+                    title="Editar anotação"
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    className="btn-icon danger-icon"
+                    onClick={() => setDeletingTask(task)}
+                    title="Remover anotação"
+                  >
+                    🗑️
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            {tasks.length === 0 && (
+              <div className="empty-state">
+                <p>Nenhuma tarefa pendente no bloquinho. ☕</p>
+              </div>
             )}
           </div>
-        ))}
-        {tasks.length === 0 && <p>Nenhuma tarefa ainda.</p>}
-      </div>
-    </div>
+        </div>
+      )}
+
+      {/* JANELINHA 1: Modal de Edição */}
+      {editingTask && (
+        <div className="modal-backdrop" onClick={() => setEditingTask(null)}>
+          <div className="modal-window" onClick={e => e.stopPropagation()}>
+            <h3>Editar recado</h3>
+            <form onSubmit={saveEdit}>
+              <input
+                autoFocus
+                value={editingTask.title}
+                onChange={e => setEditingTask({ ...editingTask, title: e.target.value })}
+              />
+              <div className="modal-actions">
+                <button type="button" className="btn-ghost" onClick={() => setEditingTask(null)}>
+                  Cancelar
+                </button>
+                <button type="submit" className="btn-primary">
+                  Salvar alteração
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* JANELINHA 2: Modal de Confirmação de Exclusão */}
+      {deletingTask && (
+        <div className="modal-backdrop" onClick={() => setDeletingTask(null)}>
+          <div className="modal-window" onClick={e => e.stopPropagation()}>
+            <h3>Rasgar este recado?</h3>
+            <p className="modal-desc">
+              "{deletingTask.title}" será removido permanentemente do seu bloco.
+            </p>
+            <div className="modal-actions">
+              <button className="btn-ghost" onClick={() => setDeletingTask(null)}>
+                Manter
+              </button>
+              <button className="btn-danger" onClick={confirmDelete}>
+                Sim, remover
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
