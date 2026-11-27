@@ -27,9 +27,17 @@ function authMiddleware(req, res, next) {
   }
 }
 
-app.get('/helh',(req,res) =>{
-  res.send("Todo ok!")
-})
+app.get('/debug', (req, res) => {
+  const publicPath = path.join(__dirname, 'public');
+  const indexPath = path.join(publicPath, 'index.html');
+  res.json({
+    cwd: process.cwd(),
+    dirname: __dirname,
+    publicExists: fs.existsSync(publicPath),
+    indexExists: fs.existsSync(indexPath),
+    publicFiles: fs.existsSync(publicPath) ? fs.readdirSync(publicPath) : []
+  });
+});
 
 // Criar conta
 app.post('/register', async (req, res) => {
