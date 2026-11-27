@@ -8,8 +8,10 @@ const { PrismaClient } = require('@prisma/client');
 const app = express();
 const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET || 'todo-secret-key-super-simples-2026';
+const fs = require('fs')
 
 const prisma = new PrismaClient();
+const path = require('path')
 
 app.use(cors());
 app.use(express.json());
