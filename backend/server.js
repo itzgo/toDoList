@@ -3,15 +3,15 @@ const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const path = require('path');
+const fs = require('fs');
 const { PrismaClient } = require('@prisma/client');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 const JWT_SECRET = process.env.JWT_SECRET || 'todo-secret-key-super-simples-2026';
-const fs = require('fs')
 
 const prisma = new PrismaClient();
-const path = require('path')
 
 app.use(cors());
 app.use(express.json());
@@ -29,19 +29,8 @@ function authMiddleware(req, res, next) {
   }
 }
 
-app.get('/debug', (req, res) => {
-  const publicPath = path.join(__dirname, 'public');
-  const indexPath = path.join(publicPath, 'index.html');
-  res.json({
-    cwd: process.cwd(),
-    dirname: __dirname,
-    publicExists: fs.existsSync(publicPath),
-    indexExists: fs.existsSync(indexPath),
-    publicFiles: fs.existsSync(publicPath) ? fs.readdirSync(publicPath) : []
-  });
-});
+// === ROTAS DA API ===
 
-// Criar conta
 app.post('/register', async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) {
@@ -66,7 +55,6 @@ app.post('/register', async (req, res) => {
   }
 });
 
-// Login
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
 
@@ -90,7 +78,6 @@ app.post('/login', async (req, res) => {
   }
 });
 
-// Listar tarefas
 app.get('/tasks', authMiddleware, async (req, res) => {
   try {
     const tasks = await prisma.task.findMany({
@@ -103,17 +90,13 @@ app.get('/tasks', authMiddleware, async (req, res) => {
   }
 });
 
-// Criar tarefa
 app.post('/tasks', authMiddleware, async (req, res) => {
   const { title } = req.body;
   if (!title) return res.status(400).json({ error: 'Título é obrigatório' });
 
   try {
     const task = await prisma.task.create({
-      data: {
-        title,
-        userId: req.userId
-      }
+      data: { title, userId: req.userId }
     });
     res.json(task);
   } catch (error) {
@@ -121,7 +104,6 @@ app.post('/tasks', authMiddleware, async (req, res) => {
   }
 });
 
-// Editar tarefa
 app.put('/tasks/:id', authMiddleware, async (req, res) => {
   const { title, completed } = req.body;
 
@@ -146,7 +128,6 @@ app.put('/tasks/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// Excluir tarefa
 app.delete('/tasks/:id', authMiddleware, async (req, res) => {
   try {
     const task = await prisma.task.findFirst({
@@ -162,6 +143,51 @@ app.delete('/tasks/:id', authMiddleware, async (req, res) => {
   }
 });
 
+// === DEBUG ===
+app.get('/debug', (req, res) => {
+  try {
+    const publicPath = path.join(__dirname, 'public');
+    const indexPath = path.join(publicPath, 'index.html');
+    let files = [];
+    if (fs.existsSync(publicPath)) {
+      files = fs.readdirSync(publicPath);
+    }
+    res.json({
+      ok: true,
+      cwd: process.cwd(),
+      dirname: __dirname,
+      publicExists: fs.existsSync(publicPath),
+      indexExists: fs.existsSync(indexPath),
+      publicFiles: files
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// === FRONTEND ===
+const publicPath = path.join(__dirname, 'public');
+const indexPath = path.join(publicPath, 'index.html');
+
+app.use(express.static(publicPath));
+
+app.get('/', (req, res) => {
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).json({ error: 'index.html não encontrado' });
+  }
+});
+
+// Fallback para qualquer outra rota (SPA)
+app.get('*', (req, res) => {
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(404).json({ error: 'Rota não encontrada' });
+  }
+});
+
 app.listen(PORT, () => {
-  console.log(`Backend rodando em http://localhost:${PORT}`);
+  console.log(`Servidor rodando na porta ${PORT}`);
 });
