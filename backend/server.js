@@ -27,6 +27,10 @@ function authMiddleware(req, res, next) {
   }
 }
 
+app.get('/helh',(req,res) =>{
+  res.send("Todo ok!")
+})
+
 // Criar conta
 app.post('/register', async (req, res) => {
   const { username, password } = req.body;
