@@ -1,5 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import './App.css';
+
+// Converte ISO/timestamp para 'YYYY-MM-DD' no fuso local do usuário
+const toLocalDateKey = (dateInput) => {
+  const d = dateInput ? new Date(dateInput) : new Date();
+  return d.toLocaleDateString('en-CA'); // Ex: "2026-11-26"
+};
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem('token') || '');
@@ -7,17 +13,23 @@ function App() {
   const [isLogin, setIsLogin] = useState(true);
   const [authForm, setAuthForm] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
-  
+
   const [tasks, setTasks] = useState([]);
   const [newTask, setNewTask] = useState('');
 
-  // Estados para as "janelinhas" (Modais) e notificações (Toast)
-  const [editingTask, setEditingTask] = useState(null); // Abre modal de edição
-  const [deletingTask, setDeletingTask] = useState(null); // Abre modal de confirmação
+  // Estados das janelinhas e toast
+  const [editingTask, setEditingTask] = useState(null);
+  const [deletingTask, setDeletingTask] = useState(null);
   const [toast, setToast] = useState(null);
 
-  const showToast = (message, type = 'info') => {
-    setToast({ message, type });
+  // Estados do Calendário (Folhinha)
+  const todayKey = toLocalDateKey(new Date());
+  const [selectedDate, setSelectedDate] = useState(todayKey);
+  const [flipDirection, setFlipDirection] = useState('next'); // 'next' ou 'prev'
+  const [pageAnimKey, setPageAnimKey] = useState(0); // Força re-execução da animação CSS
+
+  const showToast = (message) => {
+    setToast(message);
     setTimeout(() => setToast(null), 3000);
   };
 
@@ -36,10 +48,62 @@ function App() {
       } else {
         logout();
       }
-    } catch (err) {
+    } catch {
       setError('Erro ao carregar tarefas');
     }
   };
+
+  // Monta a lista ordenada de todas as "páginas" (dias com tarefas + hoje)
+  const availablePages = useMemo(() => {
+    const dateSet = new Set([todayKey]);
+    tasks.forEach((t) => {
+      if (t.createdAt) {
+        dateSet.add(toLocalDateKey(t.createdAt));
+      }
+    });
+    return Array.from(dateSet).sort(); // Ordem cronológica: mais antigo -> hoje
+  }, [tasks, todayKey]);
+
+  const currentIndex = availablePages.indexOf(selectedDate);
+
+  // Troca de folha com direção para animar
+  const goToPage = (targetDate, direction) => {
+    if (!targetDate || targetDate === selectedDate) return;
+    setFlipDirection(direction);
+    setSelectedDate(targetDate);
+    setPageAnimKey((prev) => prev + 1);
+  };
+
+  const handlePrevPage = () => {
+    if (currentIndex > 0) {
+      goToPage(availablePages[currentIndex - 1], 'prev');
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentIndex < availablePages.length - 1) {
+      goToPage(availablePages[currentIndex + 1], 'next');
+    }
+  };
+
+  // Filtra apenas as tarefas da folha aberta no momento
+  const dayTasks = useMemo(() => {
+    return tasks.filter((t) => toLocalDateKey(t.createdAt) === selectedDate);
+  }, [tasks, selectedDate]);
+
+  // Formata o cabeçalho da folha do calendário (Dia, Mês, Dia da Semana)
+  const dateHeader = useMemo(() => {
+    const [year, month, day] = selectedDate.split('-').map(Number);
+    const localDate = new Date(year, month - 1, day);
+    const weekday = localDate.toLocaleDateString('pt-BR', { weekday: 'long' });
+    const monthName = localDate.toLocaleDateString('pt-BR', { month: 'long' });
+    return {
+      day: String(day).padStart(2, '0'),
+      monthYear: `${monthName} de ${year}`,
+      weekday: weekday.charAt(0).toUpperCase() + weekday.slice(1),
+      isToday: selectedDate === todayKey
+    };
+  }, [selectedDate, todayKey]);
 
   const handleAuth = async (e) => {
     e.preventDefault();
@@ -64,6 +128,7 @@ function App() {
         localStorage.setItem('username', data.username);
         setToken(data.token);
         setUsername(data.username);
+        setSelectedDate(todayKey);
         showToast(`Bem-vindo de volta, ${data.username}!`);
       } else {
         setError('');
@@ -100,7 +165,11 @@ function App() {
       const task = await res.json();
       setTasks([...tasks, task]);
       setNewTask('');
-      showToast('Anotado no bloco!');
+      // Se estiver olhando uma página antiga, folheia de volta para hoje onde a tarefa nasceu
+      if (selectedDate !== todayKey) {
+        goToPage(todayKey, 'next');
+      }
+      showToast('Anotado na folha de hoje!');
     }
   };
 
@@ -111,9 +180,18 @@ function App() {
       headers: { Authorization: `Bearer ${token}` }
     });
     if (res.ok) {
-      setTasks(tasks.filter(t => t.id !== deletingTask.id));
+      const remaining = tasks.filter((t) => t.id !== deletingTask.id);
+      setTasks(remaining);
       setDeletingTask(null);
       showToast('Item removido.');
+
+      // Se a folha antiga ficou sem nenhuma tarefa, volta para hoje
+      const stillHasTasksOnPage = remaining.some(
+        (t) => toLocalDateKey(t.createdAt) === selectedDate
+      );
+      if (!stillHasTasksOnPage && selectedDate !== todayKey) {
+        goToPage(todayKey, 'next');
+      }
     }
   };
 
@@ -132,7 +210,7 @@ function App() {
 
     if (res.ok) {
       const updated = await res.json();
-      setTasks(tasks.map(t => t.id === editingTask.id ? updated : t));
+      setTasks(tasks.map((t) => (t.id === editingTask.id ? updated : t)));
       setEditingTask(null);
       showToast('Anotação atualizada.');
     }
@@ -150,18 +228,17 @@ function App() {
 
     if (res.ok) {
       const updated = await res.json();
-      setTasks(tasks.map(t => t.id === task.id ? updated : t));
+      setTasks(tasks.map((t) => (t.id === task.id ? updated : t)));
     }
   };
 
-  const completedCount = tasks.filter(t => t.completed).length;
+  const completedCount = dayTasks.filter((t) => t.completed).length;
 
   return (
     <>
-      {/* Notificação Flutuante (Toast) */}
       {toast && (
         <div className="toast-notification">
-          <span>📌</span> {toast.message}
+          <span>📌</span> {toast}
         </div>
       )}
 
@@ -169,10 +246,10 @@ function App() {
         <div className="container animate-paper">
           <div className="magnet magnet-left"></div>
           <div className="magnet magnet-right"></div>
-          
-          <h1>Meu bloquinho</h1>
+
+          <h1>Minha Geladeira</h1>
           <p className="subtitle">
-            {isLogin ? 'Entre para ver seus tarefas' : 'Crie seu bloquinho pessoal'}
+            {isLogin ? 'Entre para folhear seus recados' : 'Crie seu bloquinho pessoal'}
           </p>
 
           <div className="auth-form">
@@ -180,14 +257,14 @@ function App() {
               <input
                 placeholder="Seu nome de usuário"
                 value={authForm.username}
-                onChange={e => setAuthForm({ ...authForm, username: e.target.value })}
+                onChange={(e) => setAuthForm({ ...authForm, username: e.target.value })}
                 required
               />
               <input
                 type="password"
                 placeholder="Sua senha"
                 value={authForm.password}
-                onChange={e => setAuthForm({ ...authForm, password: e.target.value })}
+                onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
                 required
               />
               <button type="submit" className="btn-primary">
@@ -198,7 +275,10 @@ function App() {
             <button
               type="button"
               className="btn-link"
-              onClick={() => { setIsLogin(!isLogin); setError(''); }}
+              onClick={() => {
+                setIsLogin(!isLogin);
+                setError('');
+              }}
             >
               {isLogin ? 'Ainda não tem um bloco? Criar conta' : 'Já tem conta? Fazer login'}
             </button>
@@ -207,103 +287,197 @@ function App() {
           </div>
         </div>
       ) : (
-        <div className="container animate-paper">
+        /* Pilha de folhas do calendário */
+        <div className="calendar-stack animate-paper">
           <div className="magnet magnet-left"></div>
           <div className="magnet magnet-right"></div>
 
-          <header className="note-header">
-            <div>
-              <h1>Recados de {username}</h1>
-              <span className="progress-badge">
-                {tasks.length === 0
-                  ? 'Tudo limpo por aqui'
-                  : `${completedCount} de ${tasks.length} concluídas`}
+          {/* Barra superior do usuário */}
+          <div className="top-user-bar">
+            <span>Bloco de <strong>{username}</strong></span>
+            <button onClick={logout} className="btn-ghost">Sair</button>
+          </div>
+
+          {/* Folha animada que vira ao trocar de dia */}
+          <div
+            key={pageAnimKey}
+            className={`calendar-sheet ${
+              flipDirection === 'prev' ? 'flip-prev' : 'flip-next'
+            }`}
+          >
+            {/* Cabeçalho estilo folhinha de parede */}
+            <div className="calendar-tear-strip">
+              <button
+                type="button"
+                className="nav-arrow"
+                onClick={handlePrevPage}
+                disabled={currentIndex <= 0}
+                title="Folha anterior"
+              >
+                ‹ Anterior
+              </button>
+
+              <div className="calendar-date-display">
+                <span className="calendar-month">{dateHeader.monthYear}</span>
+                <div className="calendar-day-number">{dateHeader.day}</div>
+                <span className="calendar-weekday">
+                  {dateHeader.weekday}
+                  {dateHeader.isToday && <em className="today-tag"> • Hoje</em>}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                className="nav-arrow"
+                onClick={handleNextPage}
+                disabled={currentIndex >= availablePages.length - 1}
+                title="Próxima folha"
+              >
+                Próximo ›
+              </button>
+            </div>
+
+            {/* Indicador de páginas (bolinhas/pílulas de dias com registros) */}
+            <div className="page-dots-bar">
+              <div className="dots-list">
+                {availablePages.map((pageDate) => (
+                  <button
+                    key={pageDate}
+                    type="button"
+                    onClick={() =>
+                      goToPage(pageDate, pageDate < selectedDate ? 'prev' : 'next')
+                    }
+                    className={`page-dot ${pageDate === selectedDate ? 'active' : ''}`}
+                    title={`Ir para ${pageDate.split('-').reverse().join('/')}`}
+                  />
+                ))}
+              </div>
+
+              {!dateHeader.isToday && (
+                <button
+                  type="button"
+                  className="btn-back-today"
+                  onClick={() => goToPage(todayKey, 'next')}
+                >
+                  Voltar para hoje ↷
+                </button>
+              )}
+            </div>
+
+            {/* Formulário só aparece na folha de hoje (ou redireciona para hoje ao criar) */}
+            <form onSubmit={createTask} className="add-task-form">
+              <input
+                placeholder={
+                  dateHeader.isToday
+                    ? 'Escrever novo lembrete hoje...'
+                    : 'Adicionar nova tarefa (vai para a folha de hoje)...'
+                }
+                value={newTask}
+                onChange={(e) => setNewTask(e.target.value)}
+              />
+              <button type="submit" className="btn-add" title="Adicionar">
+                +
+              </button>
+            </form>
+
+            {/* Resumo do dia */}
+            <div className="day-summary">
+              <span>
+                {dayTasks.length === 0
+                  ? 'Nenhum recado neste dia'
+                  : `${completedCount} de ${dayTasks.length} concluídas`}
+              </span>
+              <span className="page-counter">
+                Folha {currentIndex + 1} de {availablePages.length}
               </span>
             </div>
-            <button onClick={logout} className="btn-ghost" title="Sair da conta">
-              Sair
-            </button>
-          </header>
 
-          <form onSubmit={createTask} className="add-task-form">
-            <input
-              placeholder="Escrever novo lembrete..."
-              value={newTask}
-              onChange={e => setNewTask(e.target.value)}
-            />
-            <button type="submit" className="btn-add" title="Adicionar">
-              +
-            </button>
-          </form>
+            {/* Lista de tarefas daquele dia */}
+            <div className="task-list">
+              {dayTasks.map((task) => {
+                // Mostra a hora em que foi criada usando o createdAt
+                const timeStr = task.createdAt
+                  ? new Date(task.createdAt).toLocaleTimeString('pt-BR', {
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })
+                  : '';
 
-          <div className="task-list">
-            {tasks.map((task, index) => (
-              <div
-                key={task.id}
-                style={{ animationDelay: `${index * 0.04}s` }}
-                className={`task animate-item ${task.completed ? 'completed' : ''}`}
-              >
-                <label className="custom-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={task.completed}
-                    onChange={() => toggleCompleted(task)}
-                  />
-                  <span className="checkmark"></span>
-                </label>
-
-                <span
-                  className="task-text"
-                  onClick={() => toggleCompleted(task)}
-                >
-                  {task.title}
-                </span>
-
-                <div className="task-actions">
-                  <button
-                    className="btn-icon"
-                    onClick={() => setEditingTask(task)}
-                    title="Editar anotação"
+                return (
+                  <div
+                    key={task.id}
+                    className={`task ${task.completed ? 'completed' : ''}`}
                   >
-                    ✏️
-                  </button>
-                  <button
-                    className="btn-icon danger-icon"
-                    onClick={() => setDeletingTask(task)}
-                    title="Remover anotação"
-                  >
-                    🗑️
-                  </button>
+                    <label className="custom-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={task.completed}
+                        onChange={() => toggleCompleted(task)}
+                      />
+                      <span className="checkmark"></span>
+                    </label>
+
+                    <div
+                      className="task-content"
+                      onClick={() => toggleCompleted(task)}
+                    >
+                      <span className="task-text">{task.title}</span>
+                      {timeStr && <span className="task-time">às {timeStr}</span>}
+                    </div>
+
+                    <div className="task-actions">
+                      <button
+                        className="btn-icon"
+                        onClick={() => setEditingTask(task)}
+                        title="Editar"
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        className="btn-icon"
+                        onClick={() => setDeletingTask(task)}
+                        title="Remover"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {dayTasks.length === 0 && (
+                <div className="empty-state">
+                  <p>Folha em branco. Aproveite o dia tranquilo! ☕</p>
                 </div>
-              </div>
-            ))}
-
-            {tasks.length === 0 && (
-              <div className="empty-state">
-                <p>Nenhuma tarefa pendente no bloquinho. ☕</p>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       )}
 
-      {/* JANELINHA 1: Modal de Edição */}
+      {/* Modal de Edição */}
       {editingTask && (
         <div className="modal-backdrop" onClick={() => setEditingTask(null)}>
-          <div className="modal-window" onClick={e => e.stopPropagation()}>
+          <div className="modal-window" onClick={(e) => e.stopPropagation()}>
             <h3>Editar recado</h3>
             <form onSubmit={saveEdit}>
               <input
                 autoFocus
                 value={editingTask.title}
-                onChange={e => setEditingTask({ ...editingTask, title: e.target.value })}
+                onChange={(e) =>
+                  setEditingTask({ ...editingTask, title: e.target.value })
+                }
               />
               <div className="modal-actions">
-                <button type="button" className="btn-ghost" onClick={() => setEditingTask(null)}>
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  onClick={() => setEditingTask(null)}
+                >
                   Cancelar
                 </button>
                 <button type="submit" className="btn-primary">
-                  Salvar alteração
+                  Salvar
                 </button>
               </div>
             </form>
@@ -311,13 +485,13 @@ function App() {
         </div>
       )}
 
-      {/* JANELINHA 2: Modal de Confirmação de Exclusão */}
+      {/* Modal de Exclusão */}
       {deletingTask && (
         <div className="modal-backdrop" onClick={() => setDeletingTask(null)}>
-          <div className="modal-window" onClick={e => e.stopPropagation()}>
+          <div className="modal-window" onClick={(e) => e.stopPropagation()}>
             <h3>Rasgar este recado?</h3>
             <p className="modal-desc">
-              "{deletingTask.title}" será removido permanentemente do seu bloco.
+              "{deletingTask.title}" será removido permanentemente desta folha.
             </p>
             <div className="modal-actions">
               <button className="btn-ghost" onClick={() => setDeletingTask(null)}>
